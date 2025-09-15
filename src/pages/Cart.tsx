@@ -72,7 +72,7 @@ const Cart = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground pb-20">
+    <div className="min-h-screen bg-background text-foreground">
       {/* Header */}
       <motion.header 
         initial={{ y: -50, opacity: 0 }}
