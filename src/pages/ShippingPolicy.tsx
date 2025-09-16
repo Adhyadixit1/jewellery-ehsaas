@@ -249,9 +249,11 @@ const ShippingPolicy = () => {
             <div className="space-y-3 text-muted-foreground">
               <p>For shipping-related queries, contact us:</p>
               <ul className="space-y-1">
-                <li><strong>Email:</strong> shipping@ehsaas.com</li>
-                <li><strong>Phone:</strong> +91 9876543210</li>
-                <li><strong>WhatsApp:</strong> +91 9876543210</li>
+                <li><strong>Registered Company:</strong> urban lalten</li>
+                <li><strong>Brand Name:</strong> Ehsaas</li>
+                <li><strong>Email:</strong> info@dreampathsolutions.in</li>
+                <li><strong>Phone:</strong> +91 7567068138</li>
+                <li><strong>WhatsApp:</strong> +91 7567068138</li>
                 <li><strong>Live Chat:</strong> Available on website 10 AM - 7 PM IST</li>
                 <li><strong>Support Hours:</strong> Monday to Saturday, 10 AM to 7 PM IST</li>
               </ul>

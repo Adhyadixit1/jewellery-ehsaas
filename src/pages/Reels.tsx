@@ -482,9 +482,14 @@ export default function Reels() {
                 // Try with different format - add .mp4 if not present
                 const newSrc = src.includes('.mp4') ? src : `${src}.mp4`;
                 v.src = newSrc;
-                v.load().catch(() => {
-                  console.error('Failed to reload video with new format');
-                });
+                v.load();
+                // Note: v.load() is synchronous, so we can't catch errors directly
+                // Add a small delay to check if loading succeeded
+                setTimeout(() => {
+                  if (v.error) {
+                    console.error('Failed to reload video with new format');
+                  }
+                }, 100);
               }
             }}
           />

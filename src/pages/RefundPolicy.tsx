@@ -182,9 +182,11 @@ const RefundPolicy = () => {
             <div className="space-y-3 text-muted-foreground">
               <p>For any refund-related queries, please contact us:</p>
               <ul className="space-y-1">
-                <li><strong>Email:</strong> refunds@ehsaas.com</li>
-                <li><strong>Phone:</strong> +91 9876543210</li>
-                <li><strong>WhatsApp:</strong> +91 9876543210</li>
+                <li><strong>Registered Company:</strong> urban lalten</li>
+                <li><strong>Brand Name:</strong> Ehsaas</li>
+                <li><strong>Email:</strong> info@dreampathsolutions.in</li>
+                <li><strong>Phone:</strong> +91 7567068138</li>
+                <li><strong>WhatsApp:</strong> +91 7567068138</li>
                 <li><strong>Support Hours:</strong> Monday to Saturday, 10 AM to 7 PM IST</li>
               </ul>
             </div>

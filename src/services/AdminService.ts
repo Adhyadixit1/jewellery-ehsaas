@@ -363,7 +363,7 @@ class AdminService {
         stock: product.stock_quantity,
         status: product.stock_quantity === 0 ? 'out_of_stock' : 
                 product.stock_quantity <= 5 ? 'low_stock' : 'in_stock',
-        category: product.categories?.name || 'Uncategorized',
+        category: product.categories?.[0]?.name || 'Uncategorized',
         featured: product.featured,
         image: product.product_images?.find(img => img.is_primary)?.image_url,
         createdAt: product.created_at,
@@ -1251,16 +1251,16 @@ class AdminService {
         if (!productMap.has(productId)) {
           productMap.set(productId, {
             id: productId,
-            name: item.products?.name || item.product_name,
+            name: item.products?.[0]?.name || item.product_name,
             sales: 0,
             revenue: 0,
-            stock: item.products?.stock_quantity || 0,
+            stock: item.products?.[0]?.stock_quantity || 0,
             status: 'active',
-            category: item.products?.categories?.name || 'Unknown',
-            price: item.products?.price || 0,
+            category: item.products?.[0]?.categories?.[0]?.name || 'Unknown',
+            price: item.products?.[0]?.price || 0,
             sku: '',
             featured: false,
-            image: item.products?.product_images?.find(img => img.is_primary)?.image_url,
+            image: item.products?.[0]?.product_images?.find((img: any) => img.is_primary)?.image_url,
             createdAt: ''
           });
         }

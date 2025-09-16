@@ -72,7 +72,7 @@ export function useTopProducts(limit = 4) {
 
 // Products Hooks
 export function useProducts(page = 1, limit = 20, search = '', category = '', status = '') {
-  return useQuery({
+  const queryResult = useQuery({
     queryKey: [...QUERY_KEYS.PRODUCTS, page, limit, search, category, status],
     queryFn: () => AdminService.getProducts(page, limit, search, category, status),
     staleTime: 5 * 60 * 1000, // 5 minutes
@@ -80,6 +80,16 @@ export function useProducts(page = 1, limit = 20, search = '', category = '', st
     placeholderData: (previousData) => previousData, // Keep previous data while fetching new data
     refetchOnWindowFocus: 'always', // Refresh when user returns to the tab
   });
+  
+  // Return the data structure that matches the regular useProducts hook
+  return {
+    ...queryResult,
+    products: queryResult.data?.products || [],
+    total: queryResult.data?.total || 0,
+    totalPages: queryResult.data?.totalPages || 0,
+    loading: queryResult.isLoading,
+    error: queryResult.error?.message || null
+  };
 }
 
 export function useDeleteProduct() {

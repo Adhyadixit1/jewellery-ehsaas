@@ -45,7 +45,10 @@ function ScrollToTop() {
   const { pathname } = useLocation();
 
   useEffect(() => {
-    window.scrollTo(0, 0);
+    // Don't scroll to top on Reels page
+    if (!pathname.includes('/reels')) {
+      window.scrollTo(0, 0);
+    }
   }, [pathname]);
 
   return null;

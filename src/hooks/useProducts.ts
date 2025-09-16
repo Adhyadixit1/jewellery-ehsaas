@@ -117,7 +117,7 @@ export function useFeaturedProducts(limit = 24) {
         setError(null);
         
         const response = await ProductService.getFeaturedProducts(limit);
-        setProducts(response.products);
+        setProducts(response);
         
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to fetch featured products');
@@ -150,7 +150,7 @@ export function useProduct(id: number) {
         setLoading(true);
         setError(null);
         
-        const productData = await ProductService.getProductById(id);
+        const productData = await ProductService.getProductById(id.toString());
         setProduct(productData);
         
       } catch (err) {

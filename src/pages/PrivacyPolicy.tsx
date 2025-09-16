@@ -154,9 +154,11 @@ const PrivacyPolicy = () => {
             <div className="space-y-3 text-muted-foreground">
               <p>If you have any questions about this Privacy Policy, please contact us:</p>
               <ul className="space-y-1">
-                <li><strong>Email:</strong> privacy@ehsaas.com</li>
-                <li><strong>Phone:</strong> +91 9876543210</li>
-                <li><strong>Address:</strong> 123 Jewelry Street, Mumbai, Maharashtra 400001, India</li>
+                <li><strong>Registered Company:</strong> urban lalten</li>
+                <li><strong>Brand Name:</strong> Ehsaas</li>
+                <li><strong>Email:</strong> info@dreampathsolutions.in</li>
+                <li><strong>Phone:</strong> +91 7567068138</li>
+                <li><strong>Address:</strong> Elements mall office 11, 1st floor, mansarovar, Jaipur, Rajasthan 302017</li>
               </ul>
             </div>
           </section>
