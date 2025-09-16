@@ -15,6 +15,54 @@ import { OrderProcessingLoader } from '@/components/OrderProcessingLoader';
 import OrderService from '@/services/OrderService';
 import { supabase } from '@/integrations/supabase/client'; // Add this import
 
+// Track checkout initiation
+const trackCheckoutInitiation = async () => {
+  try {
+    // Get session ID from localStorage
+    const sessionId = typeof window !== 'undefined' ? 
+      localStorage.getItem('visitor_session_id') : null;
+    
+    console.log('Tracking checkout initiation:', { sessionId });
+    
+    if (sessionId) {
+      // Increment checkout initiations
+      const params = {
+        p_session_id: sessionId
+      };
+      
+      console.log('Calling increment_checkout_initiations with params:', params);
+      
+      const { error } = await supabase.rpc('increment_checkout_initiations', params);
+      
+      if (error) {
+        console.error('Error tracking checkout initiation:', error);
+        console.error('Session ID:', sessionId);
+        // Try to get more detailed error information
+        console.error('Error details:', {
+          message: error.message,
+          code: error.code,
+          details: error.details,
+          hint: error.hint
+        });
+      } else {
+        console.log('Checkout initiation tracked successfully');
+      }
+    } else {
+      console.warn('No session ID found for checkout initiation tracking');
+    }
+  } catch (error) {
+    console.error('Error tracking checkout initiation:', error);
+    // Log more detailed error information if available
+    if (error instanceof Error) {
+      console.error('Error details:', {
+        name: error.name,
+        message: error.message,
+        stack: error.stack
+      });
+    }
+  }
+};
+
 interface ShippingInfo {
   fullName: string;
   email: string;
@@ -32,9 +80,8 @@ interface PaymentInfo {
 
 const Checkout = () => {
   const navigate = useNavigate();
-  const { cartItems, getTotalPrice, getDiscountAmount, getFinalTotal, clearCart } = useCart();
-  const { user, isAuthenticated } = useAuth(); // Get auth context
-  const [currentStep, setCurrentStep] = useState<'shipping' | 'payment' | 'review'>('shipping');
+  const { cartItems, clearCart, getTotalPrice, getDiscountAmount, getFinalTotal } = useCart();
+  const { user, isAuthenticated } = useAuth();
   const [shippingInfo, setShippingInfo] = useState<ShippingInfo>({
     fullName: '',
     email: '',
@@ -45,13 +92,20 @@ const Checkout = () => {
     pincode: '',
     landmark: ''
   });
-  const [paymentInfo, setPaymentInfo] = useState<PaymentInfo>({
-    method: 'cod'
-  });
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [paymentInfo, setPaymentInfo] = useState<PaymentInfo>({ method: 'cod' });
+  const [currentStep, setCurrentStep] = useState<'shipping' | 'payment' | 'review'>('shipping');
   const [isFetchingLocation, setIsFetchingLocation] = useState(false);
   const [showOrderLoader, setShowOrderLoader] = useState(false);
-  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const hasTrackedInitiation = useRef(false);
+
+  // Track checkout initiation on component mount
+  useEffect(() => {
+    if (!hasTrackedInitiation.current) {
+      trackCheckoutInitiation();
+      hasTrackedInitiation.current = true;
+    }
+  }, []);
 
   // Validate form fields in real-time
   useEffect(() => {
@@ -81,7 +135,7 @@ const Checkout = () => {
       errors.address = 'Address is required';
     }
     
-    setFormErrors(errors);
+    setErrors(errors);
   }, [shippingInfo]);
 
   const formatPrice = (price: number) => {
@@ -191,7 +245,7 @@ const Checkout = () => {
     e.preventDefault();
     
     // Check for any validation errors
-    const hasErrors = Object.keys(formErrors).length > 0;
+    const hasErrors = Object.keys(errors).length > 0;
     if (hasErrors) {
       alert('Please fix the validation errors before continuing');
       return;
@@ -395,10 +449,10 @@ const Checkout = () => {
                 value={shippingInfo.fullName}
                 onChange={(e) => setShippingInfo({...shippingInfo, fullName: e.target.value})}
                 required
-                className={formErrors.fullName ? 'border-red-500' : ''}
+                className={errors.fullName ? 'border-red-500' : ''}
               />
-              {formErrors.fullName && (
-                <p className="text-sm text-red-500 mt-1">{formErrors.fullName}</p>
+              {errors.fullName && (
+                <p className="text-sm text-red-500 mt-1">{errors.fullName}</p>
               )}
             </div>
             <div>
@@ -416,10 +470,10 @@ const Checkout = () => {
                 minLength={10}
                 maxLength={10}
                 placeholder="10-digit mobile number"
-                className={formErrors.phone ? 'border-red-500' : ''}
+                className={errors.phone ? 'border-red-500' : ''}
               />
-              {formErrors.phone && (
-                <p className="text-sm text-red-500 mt-1">{formErrors.phone}</p>
+              {errors.phone && (
+                <p className="text-sm text-red-500 mt-1">{errors.phone}</p>
               )}
             </div>
           </div>
@@ -468,7 +522,7 @@ const Checkout = () => {
                   minLength={6}
                   maxLength={6}
                   placeholder="6-digit PIN code"
-                  className={formErrors.pincode ? 'border-red-500' : ''}
+                  className={errors.pincode ? 'border-red-500' : ''}
                 />
                 {isFetchingLocation && (
                   <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
@@ -476,8 +530,8 @@ const Checkout = () => {
                   </div>
                 )}
               </div>
-              {formErrors.pincode && (
-                <p className="text-sm text-red-500 mt-1">{formErrors.pincode}</p>
+              {errors.pincode && (
+                <p className="text-sm text-red-500 mt-1">{errors.pincode}</p>
               )}
             </div>
             <div>
@@ -487,10 +541,10 @@ const Checkout = () => {
                 value={shippingInfo.city}
                 onChange={(e) => setShippingInfo({...shippingInfo, city: e.target.value})}
                 required
-                className={formErrors.city ? 'border-red-500' : ''}
+                className={errors.city ? 'border-red-500' : ''}
               />
-              {formErrors.city && (
-                <p className="text-sm text-red-500 mt-1">{formErrors.city}</p>
+              {errors.city && (
+                <p className="text-sm text-red-500 mt-1">{errors.city}</p>
               )}
             </div>
             <div>
@@ -500,10 +554,10 @@ const Checkout = () => {
                 value={shippingInfo.state}
                 onChange={(e) => setShippingInfo({...shippingInfo, state: e.target.value})}
                 required
-                className={formErrors.state ? 'border-red-500' : ''}
+                className={errors.state ? 'border-red-500' : ''}
               />
-              {formErrors.state && (
-                <p className="text-sm text-red-500 mt-1">{formErrors.state}</p>
+              {errors.state && (
+                <p className="text-sm text-red-500 mt-1">{errors.state}</p>
               )}
             </div>
           </div>
@@ -514,10 +568,10 @@ const Checkout = () => {
               value={shippingInfo.address}
               onChange={(e) => setShippingInfo({...shippingInfo, address: e.target.value})}
               required
-              className={formErrors.address ? 'border-red-500' : ''}
+              className={errors.address ? 'border-red-500' : ''}
             />
-            {formErrors.address && (
-              <p className="text-sm text-red-500 mt-1">{formErrors.address}</p>
+            {errors.address && (
+              <p className="text-sm text-red-500 mt-1">{errors.address}</p>
             )}
           </div>
           <div>

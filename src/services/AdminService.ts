@@ -66,6 +66,11 @@ export interface AnalyticsData {
     bounceRateChange: number;
     avgSessionDuration: number;
     sessionDurationChange: number;
+    // New e-commerce metrics
+    addedToCartCount: number;
+    initiatedCheckoutCount: number;
+    completedOrdersCount: number;
+    conversionRate: number;
   };
   deviceBreakdown: Array<{
     device: string;
@@ -82,6 +87,13 @@ export interface AnalyticsData {
     visitors: number;
     percentage: number;
   }>;
+  // New e-commerce data
+  ecommerceMetrics: {
+    cartAdditions: number;
+    checkoutInitiations: number;
+    completedOrders: number;
+    conversionRate: number;
+  };
 }
 
 class AdminService {
@@ -504,6 +516,12 @@ class AdminService {
         supabase
           .from('order_items')
           .select('product_id, created_at')
+          .gte('created_at', thirtyDaysAgo),
+          
+        // E-commerce events from visitor analytics
+        supabase
+          .from('visitor_analytics')
+          .select('added_to_cart_count, initiated_checkout_count, completed_orders_count')
           .gte('created_at', thirtyDaysAgo)
       ]);
 
@@ -514,6 +532,7 @@ class AdminService {
       const recentOrderData = results[3].status === 'fulfilled' && !results[3].value.error ? results[3].value.data || [] : [];
       const userData = results[4].status === 'fulfilled' && !results[4].value.error ? results[4].value.data || [] : [];
       const productViewData = results[5].status === 'fulfilled' && !results[5].value.error ? results[5].value.data || [] : [];
+      const ecommerceData = results[6].status === 'fulfilled' && !results[6].value.error ? results[6].value.data || [] : [];
 
       // Calculate real analytics metrics
       const uniqueVisitors = new Set(visitorData.map(v => v.session_id || v.ip_address)).size;
@@ -522,6 +541,14 @@ class AdminService {
       const recentPageViews = recentVisitorData.length;
       const totalRevenue = orderData.filter(o => o.payment_status === 'paid').reduce((sum, order) => sum + (order.total || 0), 0);
       const recentRevenue = recentOrderData.filter(o => o.payment_status === 'paid').reduce((sum, order) => sum + (order.total || 0), 0);
+
+      // Calculate e-commerce metrics
+      const totalCartAdditions = ecommerceData.reduce((sum, record) => sum + (record.added_to_cart_count || 0), 0);
+      const totalCheckoutInitiations = ecommerceData.reduce((sum, record) => sum + (record.initiated_checkout_count || 0), 0);
+      const totalCompletedOrders = ecommerceData.reduce((sum, record) => sum + (record.completed_orders_count || 0), 0);
+      
+      // Calculate conversion rate (completed orders / unique visitors)
+      const conversionRate = uniqueVisitors > 0 ? (totalCompletedOrders / uniqueVisitors) * 100 : 0;
 
       // Calculate percentage changes
       const visitorsChange = recentUniqueVisitors > 0 && uniqueVisitors > recentUniqueVisitors 
@@ -587,7 +614,12 @@ class AdminService {
           bounceRate: totalPageViews > 0 ? Math.round(((uniqueVisitors / totalPageViews) * 100) * 10) / 10 : 0,
           bounceRateChange: 0, // Would need session duration data
           avgSessionDuration: totalPageViews > 0 ? Math.round(300 + (totalPageViews / uniqueVisitors * 60)) : 0, // Estimated based on page views
-          sessionDurationChange: 0
+          sessionDurationChange: 0,
+          // New e-commerce metrics
+          addedToCartCount: totalCartAdditions,
+          initiatedCheckoutCount: totalCheckoutInitiations,
+          completedOrdersCount: totalCompletedOrders,
+          conversionRate: Math.round(conversionRate * 100) / 100
         },
         deviceBreakdown,
         topPages: topPages.length > 0 ? topPages : [
@@ -616,14 +648,24 @@ class AdminService {
             visitors: Math.floor(totalTraffic * 0.05), 
             percentage: 5
           }
-        ]
+        ],
+        // New e-commerce data
+        ecommerceMetrics: {
+          cartAdditions: totalCartAdditions,
+          checkoutInitiations: totalCheckoutInitiations,
+          completedOrders: totalCompletedOrders,
+          conversionRate: Math.round(conversionRate * 100) / 100
+        }
       };
 
       console.log('✅ Real-time analytics data calculated:', {
         visitors: uniqueVisitors,
         pageViews: totalPageViews,
         orders: orderData.length,
-        revenue: totalRevenue
+        revenue: totalRevenue,
+        cartAdditions: totalCartAdditions,
+        checkoutInitiations: totalCheckoutInitiations,
+        completedOrders: totalCompletedOrders
       });
       
       return analytics;
@@ -640,7 +682,11 @@ class AdminService {
           bounceRate: 0,
           bounceRateChange: 0,
           avgSessionDuration: 0,
-          sessionDurationChange: 0
+          sessionDurationChange: 0,
+          addedToCartCount: 0,
+          initiatedCheckoutCount: 0,
+          completedOrdersCount: 0,
+          conversionRate: 0
         },
         deviceBreakdown: [
           { device: 'Mobile', count: 0, percentage: 0 },
@@ -656,7 +702,13 @@ class AdminService {
           { source: 'Direct', visitors: 0, percentage: 0 },
           { source: 'Social Media', visitors: 0, percentage: 0 },
           { source: 'Referral', visitors: 0, percentage: 0 }
-        ]
+        ],
+        ecommerceMetrics: {
+          cartAdditions: 0,
+          checkoutInitiations: 0,
+          completedOrders: 0,
+          conversionRate: 0
+        }
       };
       
       console.warn('Returning fallback analytics due to error');

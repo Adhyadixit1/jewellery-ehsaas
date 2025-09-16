@@ -14,7 +14,9 @@ import {
   Clock,
   BarChart3,
   RefreshCw,
-  AlertTriangle
+  AlertTriangle,
+  Package,
+  CreditCard
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -44,8 +46,6 @@ export default function AdminAnalytics() {
   } = useAnalytics();
   
   const loading = authLoading || analyticsLoading;
-
-
 
   // Show error if analytics failed to load
   if (analyticsError && !loading) {
@@ -81,36 +81,16 @@ export default function AdminAnalytics() {
     );
   }
 
-  // Show access denied if not authenticated or not admin
+  // Show access denied if not admin
   if (!isAuthenticated || !isAdmin) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center space-y-4">
-          <AlertTriangle className="w-16 h-16 text-red-500 mx-auto" />
-          <h2 className="text-2xl font-bold text-foreground">Access Denied</h2>
+        <div className="text-center">
+          <AlertTriangle className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-foreground mb-2">Access Denied</h2>
           <p className="text-muted-foreground">
-            {!isAuthenticated 
-              ? 'Please log in to access the admin analytics.' 
-              : 'Admin access required to view analytics.'}
+            You must be an administrator to view analytics
           </p>
-          <Button onClick={() => window.location.href = '/admin/login'}>
-            Go to Admin Login
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  if (!analyticsData) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center space-y-4">
-          <BarChart3 className="w-16 h-16 text-muted-foreground mx-auto" />
-          <h2 className="text-2xl font-bold text-foreground">No Analytics Data</h2>
-          <p className="text-muted-foreground">Analytics data is not available</p>
-          <Button onClick={() => refetchAnalytics()}>
-            Retry Loading
-          </Button>
         </div>
       </div>
     );
@@ -211,71 +191,106 @@ export default function AdminAnalytics() {
         </Card>
       </div>
 
+      {/* E-commerce Metrics */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Added to Cart</p>
+                <p className="text-2xl font-bold">{analyticsData.ecommerceMetrics?.cartAdditions.toLocaleString() || '0'}</p>
+                <p className="text-xs text-muted-foreground mt-1">Total cart additions</p>
+              </div>
+              <ShoppingCart className="w-8 h-8 text-muted-foreground" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Initiated Checkout</p>
+                <p className="text-2xl font-bold">{analyticsData.ecommerceMetrics?.checkoutInitiations.toLocaleString() || '0'}</p>
+                <p className="text-xs text-muted-foreground mt-1">Checkout starts</p>
+              </div>
+              <CreditCard className="w-8 h-8 text-muted-foreground" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Completed Orders</p>
+                <p className="text-2xl font-bold">{analyticsData.ecommerceMetrics?.completedOrders.toLocaleString() || '0'}</p>
+                <p className="text-xs text-muted-foreground mt-1">Successful orders</p>
+              </div>
+              <Package className="w-8 h-8 text-muted-foreground" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Conversion Rate</p>
+                <p className="text-2xl font-bold">{analyticsData.ecommerceMetrics?.conversionRate.toFixed(2) || '0.00'}%</p>
+                <p className="text-xs text-muted-foreground mt-1">Orders per visitor</p>
+              </div>
+              <TrendingUp className="w-8 h-8 text-muted-foreground" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Device Breakdown and Top Pages */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Device Breakdown */}
         <Card>
           <CardHeader>
             <CardTitle>Device Breakdown</CardTitle>
-            <CardDescription>Visitor distribution by device type</CardDescription>
+            <CardDescription>Visitors by device type</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {analyticsData.deviceBreakdown.map((device) => {
-                const Icon = device.device === 'Mobile' ? Smartphone : device.device === 'Desktop' ? Monitor : Tablet;
-                return (
-                  <div key={device.device} className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <Icon className="w-5 h-5 text-muted-foreground" />
-                      <span className="font-medium">{device.device}</span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <div className="w-24 bg-muted rounded-full h-2">
-                        <div 
-                          className="bg-primary h-2 rounded-full"
-                          style={{ width: `${device.percentage}%` }}
-                        />
-                      </div>
-                      <span className="text-sm font-medium w-12 text-right">
-                        {device.percentage}%
-                      </span>
-                      <span className="text-sm text-muted-foreground w-16 text-right">
-                        {device.count.toLocaleString()}
-                      </span>
-                    </div>
+              {analyticsData.deviceBreakdown.map((device) => (
+                <div key={device.device} className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    {device.device === 'Mobile' && <Smartphone className="w-4 h-4 text-muted-foreground" />}
+                    {device.device === 'Desktop' && <Monitor className="w-4 h-4 text-muted-foreground" />}
+                    {device.device === 'Tablet' && <Tablet className="w-4 h-4 text-muted-foreground" />}
+                    <span className="font-medium">{device.device}</span>
                   </div>
-                );
-              })}
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm">{device.count.toLocaleString()}</span>
+                    <span className="text-sm text-muted-foreground">({device.percentage}%)</span>
+                  </div>
+                </div>
+              ))}
             </div>
           </CardContent>
         </Card>
 
-        {/* Traffic Sources */}
+        {/* Top Pages */}
         <Card>
           <CardHeader>
-            <CardTitle>Traffic Sources</CardTitle>
-            <CardDescription>How visitors find your website</CardDescription>
+            <CardTitle>Top Pages</CardTitle>
+            <CardDescription>Most visited pages</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {analyticsData.trafficSources.map((source) => (
-                <div key={source.source} className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Globe className="w-5 h-5 text-muted-foreground" />
-                    <span className="font-medium">{source.source}</span>
+            <div className="space-y-3">
+              {analyticsData.topPages.map((page, index) => (
+                <div key={index} className="flex items-center justify-between">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{page.page}</p>
+                    <p className="text-xs text-muted-foreground">{page.views.toLocaleString()} views</p>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <div className="w-24 bg-muted rounded-full h-2">
-                      <div 
-                        className="bg-primary h-2 rounded-full"
-                        style={{ width: `${source.percentage}%` }}
-                      />
-                    </div>
-                    <span className="text-sm font-medium w-12 text-right">
-                      {source.percentage}%
-                    </span>
-                    <span className="text-sm text-muted-foreground w-16 text-right">
-                      {source.visitors.toLocaleString()}
-                    </span>
+                  <div className="text-right">
+                    <p className="text-sm">{page.bounceRate}%</p>
+                    <p className="text-xs text-muted-foreground">bounce</p>
                   </div>
                 </div>
               ))}
@@ -284,31 +299,25 @@ export default function AdminAnalytics() {
         </Card>
       </div>
 
+      {/* Traffic Sources and Recent Visitors */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Top Pages */}
+        {/* Traffic Sources */}
         <Card>
           <CardHeader>
-            <CardTitle>Top Pages</CardTitle>
-            <CardDescription>Most visited pages on your website</CardDescription>
+            <CardTitle>Traffic Sources</CardTitle>
+            <CardDescription>Where visitors come from</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {analyticsData.topPages.map((page, index) => (
-                <div key={page.page} className="flex items-center justify-between py-2 border-b border-border last:border-b-0">
-                  <div className="flex items-center gap-3">
-                    <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-xs font-medium text-primary">
-                      {index + 1}
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-medium text-sm truncate">{page.page}</p>
-                      <p className="text-xs text-muted-foreground">
-                        Bounce rate: {page.bounceRate}%
-                      </p>
-                    </div>
+            <div className="space-y-3">
+              {analyticsData.trafficSources.map((source, index) => (
+                <div key={index} className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Globe className="w-4 h-4 text-muted-foreground" />
+                    <span className="font-medium">{source.source}</span>
                   </div>
-                  <div className="text-right">
-                    <p className="font-semibold">{page.views.toLocaleString()}</p>
-                    <p className="text-xs text-muted-foreground">views</p>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm">{source.visitors.toLocaleString()}</span>
+                    <span className="text-sm text-muted-foreground">({source.percentage}%)</span>
                   </div>
                 </div>
               ))}

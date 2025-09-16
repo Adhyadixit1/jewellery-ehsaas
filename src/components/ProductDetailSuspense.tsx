@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { ProductCacheService } from '@/services/ProductCacheService';
 import { ProductService } from '@/services/ProductService';
 import { ProductDetailSplash } from '@/components/ProductDetailSplash';
+import { FullPageLoading } from '@/components/AppLoading';
 
 // Lazy load the optimized product detail component
 const ProductDetailOptimized = lazy(() => import('@/components/ProductDetailOptimized'));
@@ -88,14 +89,7 @@ export function ProductDetailSuspense() {
 
   // Load full component when ready
   return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4 text-foreground">Loading details...</p>
-        </div>
-      </div>
-    }>
+    <Suspense fallback={<FullPageLoading message="Loading product details..." />}>
       <ProductDetailOptimized />
     </Suspense>
   );

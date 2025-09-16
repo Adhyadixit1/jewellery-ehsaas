@@ -1,5 +1,17 @@
 import { supabase } from '@/integrations/supabase/client';
 
+// Define the ShippingInfo interface locally since it's used in this file
+interface ShippingInfo {
+  fullName: string;
+  email: string;
+  phone: string;
+  address: string;
+  city: string;
+  state: string;
+  pincode: string;
+  landmark: string;
+}
+
 export interface OrderData {
   orderNumber: string;
   userId: string;
@@ -83,6 +95,54 @@ export interface Order {
   createdAt?: string; // Alias for created_at
   updatedAt?: string; // Alias for updated_at
 }
+
+// Track completed order
+const trackCompletedOrder = async () => {
+  try {
+    // Get session ID from localStorage
+    const sessionId = typeof window !== 'undefined' ? 
+      localStorage.getItem('visitor_session_id') : null;
+    
+    console.log('Tracking completed order:', { sessionId });
+    
+    if (sessionId) {
+      // Increment completed orders
+      const params = {
+        p_session_id: sessionId
+      };
+      
+      console.log('Calling increment_completed_orders with params:', params);
+      
+      const { error } = await supabase.rpc('increment_completed_orders', params);
+      
+      if (error) {
+        console.error('Error tracking completed order:', error);
+        console.error('Session ID:', sessionId);
+        // Try to get more detailed error information
+        console.error('Error details:', {
+          message: error.message,
+          code: error.code,
+          details: error.details,
+          hint: error.hint
+        });
+      } else {
+        console.log('Completed order tracked successfully');
+      }
+    } else {
+      console.warn('No session ID found for completed order tracking');
+    }
+  } catch (error) {
+    console.error('Error tracking completed order:', error);
+    // Log more detailed error information if available
+    if (error instanceof Error) {
+      console.error('Error details:', {
+        name: error.name,
+        message: error.message,
+        stack: error.stack
+      });
+    }
+  }
+};
 
 class OrderService {
   
@@ -578,65 +638,71 @@ class OrderService {
   /**
    * Create a new order
    */
-  static async createOrder(orderData: OrderData, items: OrderItem[], shippingInfo: any): Promise<Order> {
+  static async createOrder(
+    orderData: OrderData,
+    orderItems: OrderItem[],
+    shippingInfo?: ShippingInfo
+  ): Promise<any> {
     try {
-      // Generate order number if not provided
-      const orderNumber = orderData.orderNumber || `EH${Date.now()}`;
+      console.log('📦 Creating order with data:', { orderData, orderItems, shippingInfo });
       
-      // Always use the userId from orderData, whether it's from an authenticated user or guest
-      const userId = orderData.userId;
+      // Get current user
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (authError || !user) {
+        throw new Error('Authentication required');
+      }
 
-      console.log('🛒 Creating new order for user:', userId);
+      // Create shipping address if provided
+      let shippingAddressId: number | undefined;
+      if (shippingInfo) {
+        const addressData = {
+          user_id: user.id,
+          first_name: shippingInfo.fullName.split(' ')[0] || shippingInfo.fullName,
+          last_name: shippingInfo.fullName.split(' ').slice(1).join(' ') || '',
+          address_line_1: shippingInfo.address,
+          city: shippingInfo.city,
+          state: shippingInfo.state,
+          postal_code: shippingInfo.pincode,
+          phone: shippingInfo.phone,
+          landmark: shippingInfo.landmark || undefined
+        };
 
-      // First, create the shipping address
-      const addressData: any = {
-        user_id: userId,
-        address_type: 'shipping',
-        first_name: shippingInfo.fullName.split(' ')[0] || '',
-        last_name: shippingInfo.fullName.split(' ').slice(1).join(' ') || '',
-        address_line_1: shippingInfo.address,
-        city: shippingInfo.city,
-        state: shippingInfo.state,
-        postal_code: shippingInfo.pincode,
-        phone: shippingInfo.phone
+        const { data: address, error: addressError } = await supabase
+          .from('user_addresses')
+          .insert(addressData)
+          .select()
+          .single();
+
+        if (addressError) {
+          console.error('❌ Error creating shipping address:', addressError);
+          throw new Error(`Failed to create shipping address: ${addressError.message}`);
+        }
+
+        shippingAddressId = address.id;
+      }
+
+      // Create the order
+      const orderToInsert = {
+        order_number: orderData.orderNumber,
+        user_id: orderData.userId,
+        status: orderData.status,
+        payment_status: orderData.paymentStatus,
+        payment_method: orderData.paymentMethod,
+        subtotal: orderData.subtotal,
+        tax_amount: orderData.taxAmount || 0,
+        shipping_amount: orderData.shippingAmount || 0,
+        discount_amount: orderData.discountAmount || 0,
+        total: orderData.total,
+        currency: orderData.currency || 'INR',
+        shipping_address_id: shippingAddressId,
+        shipping_method: orderData.shippingMethod,
+        tracking_number: orderData.trackingNumber,
+        notes: orderData.notes
       };
-      
-      // Only include landmark if it has a value (handles missing database column gracefully)
-      if (shippingInfo.landmark && shippingInfo.landmark.trim() !== '') {
-        addressData.landmark = shippingInfo.landmark;
-      }
-      
-      const { data: shippingAddress, error: addressError } = await supabase
-        .from('user_addresses')
-        .insert(addressData)
-        .select()
-        .single();
 
-      if (addressError) {
-        console.error('❌ Error creating shipping address:', addressError);
-        throw new Error(`Failed to create shipping address: ${addressError.message}`);
-      }
-
-      // Create order with the shipping address ID
       const { data: order, error: orderError } = await supabase
         .from('orders')
-        .insert({
-          order_number: orderNumber,
-          user_id: userId,
-          status: orderData.status || 'pending',
-          payment_status: orderData.paymentStatus || 'pending',
-          payment_method: orderData.paymentMethod,
-          subtotal: orderData.subtotal,
-          tax_amount: orderData.taxAmount || 0,
-          shipping_amount: orderData.shippingAmount || 0,
-          discount_amount: orderData.discountAmount || 0,
-          total: orderData.total,
-          currency: orderData.currency || 'INR',
-          shipping_method: orderData.shippingMethod,
-          tracking_number: orderData.trackingNumber,
-          notes: orderData.notes,
-          shipping_address_id: shippingAddress.id
-        })
+        .insert(orderToInsert)
         .select()
         .single();
 
@@ -645,67 +711,33 @@ class OrderService {
         throw new Error(`Failed to create order: ${orderError.message}`);
       }
 
-      console.log('✅ Order created:', order.order_number);
-
       // Create order items
-      if (items.length > 0) {
-        console.log('📦 Creating order items:', items);
-        
-        // Prepare order items with variant fields
-        const orderItemsWithVariants = items.map(item => ({
-          order_id: order.id,
-          product_id: item.productId,
-          product_sku: item.productSku,
-          product_name: item.productName,
-          quantity: item.quantity,
-          unit_price: item.unitPrice,
-          total_price: item.totalPrice,
-          // Include variant fields if they exist
-          ...(item.size && { size: item.size }),
-          ...(item.color && { color: item.color })
-        }));
+      const itemsToInsert = orderItems.map(item => ({
+        order_id: order.id,
+        product_id: item.productId,
+        product_sku: item.productSku,
+        product_name: item.productName,
+        quantity: item.quantity,
+        unit_price: item.unitPrice,
+        total_price: item.totalPrice
+      }));
 
-        console.log('📦 Order items to insert (with variants):', orderItemsWithVariants);
-        
-        // Try to insert with variant fields first
-        let { error: itemsError } = await supabase
-          .from('order_items')
-          .insert(orderItemsWithVariants);
+      const { error: itemsError } = await supabase
+        .from('order_items')
+        .insert(itemsToInsert);
 
-        // If that fails due to schema issues, try without variant fields
-        if (itemsError && (itemsError.message.includes('schema cache') || itemsError.message.includes('column'))) {
-          console.warn('⚠️ Variant columns not found in schema cache, falling back to basic insert');
-          
-          // Create order items without variant fields
-          const orderItemsBasic = items.map(item => ({
-            order_id: order.id,
-            product_id: item.productId,
-            product_sku: item.productSku,
-            product_name: item.productName,
-            quantity: item.quantity,
-            unit_price: item.unitPrice,
-            total_price: item.totalPrice
-          }));
-
-          console.log('📦 Order items to insert (without variants):', orderItemsBasic);
-          const { error: fallbackError } = await supabase
-            .from('order_items')
-            .insert(orderItemsBasic);
-
-          if (fallbackError) {
-            console.error('❌ Error creating order items (fallback):', fallbackError);
-            throw new Error(`Order created but items failed: ${fallbackError.message}`);
-          }
-        } else if (itemsError) {
-          // Some other error occurred
-          console.error('❌ Error creating order items:', itemsError);
-          throw new Error(`Order created but items failed: ${itemsError.message}`);
-        }
-
-        console.log(`✅ Created ${items.length} order items`);
+      if (itemsError) {
+        console.error('❌ Error creating order items:', itemsError);
+        // Try to delete the order if items failed to create
+        await supabase.from('orders').delete().eq('id', order.id);
+        throw new Error(`Failed to create order items: ${itemsError.message}`);
       }
 
-      return order as Order;
+      // Track completed order
+      await trackCompletedOrder();
+
+      console.log('✅ Order created successfully:', order);
+      return order;
 
     } catch (error) {
       console.error('💥 OrderService.createOrder error:', error);
