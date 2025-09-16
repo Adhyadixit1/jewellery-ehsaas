@@ -642,7 +642,7 @@ export default function ProductDetailOptimized() {
       {/* Floating WhatsApp Button */}
       <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
         <a
-          href="https://wa.me/916354346228?text=Do you have any questions? Connect with us now!"
+          href="https://wa.me/916354346228?text=Hi, Can you tell me more about this product"
           target="_blank"
           rel="noopener noreferrer"
           className="bg-green-500 hover:bg-green-600 text-white p-4 rounded-full shadow-lg transition-all duration-300 mb-1"
@@ -650,7 +650,7 @@ export default function ProductDetailOptimized() {
           <MessageCircle className="w-6 h-6" />
         </a>
         <span className="text-xs text-gray-600 bg-white px-2 py-1 rounded shadow-sm max-w-[120px] text-center">
-          Do you have any questions?
+          Hi, Can you tell me more about this product
         </span>
       </div>
     </div>
