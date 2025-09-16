@@ -126,10 +126,10 @@ const generateStories = (products: Product[]) => {
     'Festive Special'
   ];
 
-  // Shuffle products for different order than feed
-  const shuffledProducts = [...products].sort(() => Math.random() - 0.5);
+  // Use products in original order for stories
+  const orderedProducts = [...products];
   
-  return shuffledProducts.map((product, index) => ({
+  return orderedProducts.map((product, index) => ({
     id: `s-${product.id}`,
     title: storyTitles[index % storyTitles.length],
     image: getProductImage(product),
@@ -155,22 +155,16 @@ const Index = () => {
   const isScrolling = useMotionBlur();
 
   // Fetch products with pagination
-  const { products: allProducts, loading: productsLoading, error: productsError, total } = useProducts(page, 15); // Load 15 products at a time
+  const productsResponse = useProducts(page, 15); // Load 15 products at a time
+  const allProducts = productsResponse.products;
+  const productsLoading = productsResponse.loading;
+  const productsError = productsResponse.error;
+  const total = productsResponse.total;
   
-  // Generic shuffle function that works with any array type
-  const shuffleArray = useCallback(<T,>(array: T[]): T[] => {
-    const shuffled = [...array];
-    for (let i = shuffled.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-    }
-    return shuffled;
+  // Use products in original order
+  const useProductsInOrder = useCallback((products: Product[]) => {
+    return [...products];
   }, []);
-  
-  // Shuffle products randomly on each load
-  const shuffleProducts = useCallback((products: Product[]) => {
-    return shuffleArray(products);
-  }, [shuffleArray]);
   
 
   // Update active tab based on current location
@@ -196,23 +190,23 @@ const Index = () => {
 
   // Removed scroll event listener to prevent scroll interference
 
-  // Load more products when page changes (deduplicate by id and shuffle)
+  // Load more products when page changes (deduplicate by id)
   useEffect(() => {
     if (allProducts.length) {
       if (page === 1) {
-        // First page: shuffle all products
-        setDisplayedProducts(shuffleProducts([...allProducts]));
+        // First page: use products in original order
+        setDisplayedProducts([...allProducts]);
       } else {
-        // Subsequent pages: merge with existing and reshuffle everything
+        // Subsequent pages: merge with existing
         setDisplayedProducts(prev => {
           const merged = [...prev, ...allProducts];
           const uniqueById = new Map<number, Product>();
           for (const p of merged) uniqueById.set(p.id, p);
-          return shuffleProducts(Array.from(uniqueById.values()));
+          return Array.from(uniqueById.values());
         });
       }
     }
-  }, [allProducts, page, shuffleProducts]);
+  }, [allProducts, page]);
 
   // Update hasMore based on current displayedProducts vs total
   useEffect(() => {
@@ -281,20 +275,17 @@ const Index = () => {
     setSelectedProduct(displayedProducts[prevIndex]);
   };
 
-  // Generate dynamic content when products are loaded (with shuffling)
+  // Generate dynamic content when products are loaded (in original order)
   useEffect(() => {
     if (displayedProducts.length > 0) {
       const dynamicReels = generateFeedReels(displayedProducts);
       const dynamicStories = generateStories(displayedProducts);
       
-      // Shuffle reels and stories
-      const shuffledReels = shuffleArray(dynamicReels);
-      const shuffledStories = shuffleArray(dynamicStories);
-      
-      setReelStates(shuffledReels);
-      setStories(shuffledStories);
+      // Use reels and stories in original order
+      setReelStates(dynamicReels);
+      setStories(dynamicStories);
     }
-  }, [displayedProducts, shuffleArray]);
+  }, [displayedProducts]);
 
   // Helper function to format product for ProductCard component
   const formatProductForCard = (product: Product) => {
@@ -420,17 +411,9 @@ const Index = () => {
           <>
             <div className="grid grid-cols-2 gap-3">
               {displayedProducts.map((product, index) => (
-                <motion.div
+                <div
                   key={`grid-${product.id}-${index}`}
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  whileInView={{ opacity: 1, scale: 1 }}
-                  viewport={{ once: false, margin: "-100px" }}
-                  transition={{ 
-                    duration: 0.5,
-                    delay: (index % 10) * 0.1,
-                    type: "spring",
-                    stiffness: 100
-                  }}
+                  className="w-full"
                 >
                   <ProductCard
                     product={formatProductForCard(product)}
@@ -440,7 +423,7 @@ const Index = () => {
                     isWishlisted={isInWishlist(BigInt(product.id))}
                     index={index}
                   />
-                </motion.div>
+                </div>
               ))}
             </div>
             {isLoading && (
@@ -482,17 +465,9 @@ const Index = () => {
           <div className="space-y-6">
             {/* Products only in feed (no posts/reels) */}
             {displayedProducts.map((product, index) => (
-              <motion.div
+              <div
                 key={`product-${product.id}-${index}`}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: false, margin: "-100px" }}
-                transition={{ 
-                  duration: 0.5,
-                  delay: (index % 5) * 0.1,
-                  type: "spring",
-                  stiffness: 100
-                }}
+                className="w-full"
               >
                 <div className="w-full">
                   <ProductCard
@@ -505,7 +480,7 @@ const Index = () => {
                     variant="compact"
                   />
                 </div>
-              </motion.div>
+              </div>
             ))}
             {isLoading && (
               <div className="flex justify-center py-6">

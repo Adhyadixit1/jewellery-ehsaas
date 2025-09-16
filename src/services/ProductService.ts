@@ -366,30 +366,20 @@ export class ProductService {
   }
 
   /**
-   * Get products with optimized query
+   * Get products with optimized single query
    */
   static async getProducts(page = 1, limit = 20) {
     try {
       const offset = (page - 1) * limit;
       
-      // First get the count (active only)
-      let { count: totalCount, error: countError } = await supabase
-        .from('products')
-        .select('*', { count: 'exact', head: true })
-        .eq('is_active', true);
-
-      if (countError) {
-        console.warn('Failed to get total count:', countError.message);
-      }
-
-      // Then get the data with joins (active only)
-      let { data, error } = await supabase
+      // Single query with count and data
+      const { data, error, count } = await supabase
         .from('products')
         .select(`
           *,
           categories (name),
           product_images (id, image_url, is_primary, media_type)
-        `)
+        `, { count: 'exact' })
         .eq('is_active', true)
         .order('created_at', { ascending: false })
         .range(offset, offset + limit - 1);
@@ -401,31 +391,35 @@ export class ProductService {
       // If no active products found, retry without active filter to avoid empty feeds (fallback)
       if ((data || []).length === 0) {
         console.warn('No active products found. Retrying without is_active filter to populate feeds.');
-        const retryCountResp = await supabase
-          .from('products')
-          .select('*', { count: 'exact', head: true });
-        totalCount = retryCountResp.count || 0;
-
-        const retryDataResp = await supabase
+        const { data: fallbackData, error: fallbackError, count: fallbackCount } = await supabase
           .from('products')
           .select(`
             *,
             categories (name),
             product_images (id, image_url, is_primary, media_type)
-          `)
+          `, { count: 'exact' })
           .order('created_at', { ascending: false })
           .range(offset, offset + limit - 1);
-        if (!retryDataResp.error) {
-          data = retryDataResp.data || [];
+
+        if (fallbackError) {
+          throw new Error(`Failed to fetch products: ${fallbackError.message}`);
         }
+
+        return {
+          products: fallbackData || [],
+          total: fallbackCount || 0,
+          page,
+          limit,
+          totalPages: Math.ceil((fallbackCount || 0) / limit)
+        };
       }
 
       return {
         products: data || [],
-        total: totalCount || 0,
+        total: count || 0,
         page,
         limit,
-        totalPages: Math.ceil((totalCount || 0) / limit)
+        totalPages: Math.ceil((count || 0) / limit)
       };
     } catch (error) {
       console.error('Error in getProducts:', error);

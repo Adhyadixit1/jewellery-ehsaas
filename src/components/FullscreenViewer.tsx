@@ -108,6 +108,8 @@ export function FullscreenViewer({
             src={product.image}
             alt={product.name}
             className="w-full h-full object-cover"
+            loading="eager"
+            decoding="async"
           />
           <div className="absolute inset-0 bg-gradient-overlay" />
         </div>

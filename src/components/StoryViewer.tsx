@@ -212,6 +212,8 @@ export function StoryViewer({
                   src={currentStory.image}
                   alt={currentStory.title}
                   className="w-full h-full object-contain bg-black/20"
+                  loading="eager"
+                  decoding="async"
                 />
                 <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/20" />
               </div>

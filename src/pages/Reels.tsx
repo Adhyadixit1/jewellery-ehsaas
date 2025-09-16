@@ -70,16 +70,6 @@ const getFirstAvailableImage = (product: any) => {
   return heroJewelry;
 };
 
-// Generic shuffle function for reels
-const shuffleReels = <T,>(array: T[]): T[] => {
-  const shuffled = [...array];
-  for (let i = shuffled.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-  }
-  return shuffled;
-};
-
 // Generate real reels data from products
 const generateReelsFromProducts = (products: any[]) => {
   const feedDescriptions = [
@@ -188,15 +178,14 @@ export default function Reels() {
   useEffect(() => {
     if (products.length > 0) {
       const generatedReels = generateReelsFromProducts(products);
-      const shuffledReels = shuffleReels(generatedReels);
-      setReelStates(shuffledReels);
+      setReelStates(generatedReels);
 
       // If a deep link is present (?reel=<id>), open that exact reel
       const params = new URLSearchParams(window.location.search);
       const reelParam = params.get('reel');
       if (reelParam) {
         setIsDeepLinked(true);
-        const idx = shuffledReels.findIndex(r => r.id === reelParam);
+        const idx = generatedReels.findIndex(r => r.id === reelParam);
         if (idx >= 0) {
           setCurrentReelIndex(idx);
         }

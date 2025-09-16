@@ -80,9 +80,9 @@ export default function ProductRecommendations({ currentProductId }: ProductReco
         // Get related products if we have a current product ID
         fetchedProducts = await ProductService.getRelatedProducts(currentProductId, 4);
       } else {
-        // Get random products if no current product ID
-        const randomProducts = await ProductService.getRandomProducts(4);
-        fetchedProducts = randomProducts;
+        // Get first products if no current product ID
+        const firstProducts = await ProductService.getProducts(1, 4);
+        fetchedProducts = firstProducts;
       }
       
       // Format products for ProductCard component
