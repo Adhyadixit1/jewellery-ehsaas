@@ -3,9 +3,74 @@ import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { Footer } from '@/components/Footer';
+import { useEffect } from 'react';
 
 const TermsOfUse = () => {
   const navigate = useNavigate();
+
+  // Scroll to top when component mounts
+  useEffect(() => {
+    // Multiple scroll attempts to overcome Framer Motion animation conflicts
+    // Immediate scroll
+    window.scrollTo(0, 0);
+    
+    // Scroll after a short delay to handle initial animations
+    const timer1 = setTimeout(() => {
+      window.scrollTo(0, 0);
+    }, 10);
+    
+    // Scroll after Framer Motion initial animations should complete
+    const timer2 = setTimeout(() => {
+      window.scrollTo(0, 0);
+      
+      // Also try to scroll the main container if it exists
+      const mainContainer = document.querySelector('.page-scroll') || 
+                           document.querySelector('main') || 
+                           document.querySelector('#root') ||
+                           document.body;
+      if (mainContainer) {
+        mainContainer.scrollTop = 0;
+        // For modern browsers
+        if (mainContainer.scrollTo) {
+          mainContainer.scrollTo(0, 0);
+        }
+      }
+      
+      // Force scroll on document element as well
+      if (document.documentElement) {
+        document.documentElement.scrollTop = 0;
+      }
+    }, 50);
+    
+    // Final scroll attempt after all animations should be done
+    const timer3 = setTimeout(() => {
+      window.scrollTo(0, 0);
+      
+      // Also try to scroll the main container if it exists
+      const mainContainer = document.querySelector('.page-scroll') || 
+                           document.querySelector('main') || 
+                           document.querySelector('#root') ||
+                           document.body;
+      if (mainContainer) {
+        mainContainer.scrollTop = 0;
+        // For modern browsers
+        if (mainContainer.scrollTo) {
+          mainContainer.scrollTo(0, 0);
+        }
+      }
+      
+      // Force scroll on document element as well
+      if (document.documentElement) {
+        document.documentElement.scrollTop = 0;
+      }
+    }, 150);
+
+    return () => {
+      clearTimeout(timer1);
+      clearTimeout(timer2);
+      clearTimeout(timer3);
+    };
+  }, []);
 
   return (
     <div className="min-h-screen bg-background">
